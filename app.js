@@ -6,6 +6,16 @@ const ejs = require("ejs");
 const { title } = require("process");
 const _ = require('lodash');
 
+const mongoose = require("mongoose")
+
+mongoose.connect('mongodb+srv://admin-ttran05:nhan0378798302@cluster0.owi72.mongodb.net/blogwebDB', {useNewUrlParser: true});
+
+const items_schema = new mongoose.Schema({
+  name: String,
+  content: String
+})
+
+const Item = mongoose.model("Item", items_schema);
 
 
 const homeStartingContent = "Lacus vel facilisis volutpat est velit egestas dui id ornare. Semper auctor neque vitae tempus quam. Sit amet cursus sit amet dictum sit amet justo. Viverra tellus in hac habitasse. Imperdiet proin fermentum leo vel orci porta. Donec ultrices tincidunt arcu non sodales neque sodales ut. Mattis molestie a iaculis at erat pellentesque adipiscing. Magnis dis parturient montes nascetur ridiculus mus mauris vitae ultricies. Adipiscing elit ut aliquam purus sit amet luctus venenatis lectus. Ultrices vitae auctor eu augue ut lectus arcu bibendum at. Odio euismod lacinia at quis risus sed vulputate odio ut. Cursus mattis molestie a iaculis at erat pellentesque adipiscing.";
@@ -20,17 +30,28 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(express.static("public"));
 
 
-var titles =[]
-var content =[]
 
 app.get("/", function (req,res) {
-  res.render("home",{
-    homeStartingContent: homeStartingContent,
-    titles :titles,
-    content:content
+  Item.find({}, function(err, posts){
+    let titles =[]
+    let contents =[]
+    let id = []
+    for (var i =0; i < posts.length; i++){
+      titles.push(posts[i].name)
+      contents.push(posts[i].content)
+      id.push(posts[i]._id)
+    }
 
-  })
-
+    console.log(titles)
+    console.log(contents)
+    console.log(id)
+    res.render("home",{
+      homeStartingContent: homeStartingContent,
+      titles :titles,
+      contents:contents,
+      id: id
+    })
+})
 })
 
 
@@ -51,33 +72,38 @@ app.get("/compose", function (req,res) {
 app.post("/compose", function (req,res) {
   const title = req.body.post_title
   const message = req.body.post_message
-  titles.push(title)
-  content.push(message)
+  const item = new Item({
+    name: title,
+    content: message
+  })
+  item.save()
 
   res.redirect("/")
 })
 
-app.get("/posts/:Title", function (req, res) {
-  var request_title = _.lowerCase(req.params.Title) 
-  console.log(request_title)
-  // titles.forEach(function (title) {
-  //   if (_.lowerCase(title)===request_title){
-  //     res.render("post", {title: title, })
-  //   }else{
-  //     console.log(" pas de reusite!!!!!!")
-  //   }
-  // })
+app.get("/posts/:id", function (req, res) {
+  var request_id = req.params.id
+  console.log(req.params.id)
+ 
+  Item.findOne({_id: request_id}, function(err, post){
+    console.log(post)
+    res.render("post", {
+      title: post.name,
+      content: post.content
+    })
+  })
 
-  for (var i=0; i <titles.length; i++){
-    if (_.lowerCase(titles[i])===request_title){
-      console.log(content[i])
-      res.render("post",{title: titles[i], content: content[i]})
-      console.log(content[i])
-    }
-  }
+
+
+  // for (var i=0; i <id.length; i++){
+  //   console.log(id.length)
+  //   if (_.lowerCase(titles[i])===request_title){
+  //     console.log(content[i])
+  //     res.render("post",{title: titles[i], content: content[i]})
+  //     console.log(content[i])
+  //   }
+  // }
     
-  
-  
 })
 
 
@@ -90,4 +116,4 @@ app.get("/posts/:Title", function (req, res) {
 
 app.listen(3000, function() {
   console.log("Server started on port 3000");
-});
+})
